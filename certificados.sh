@@ -176,9 +176,7 @@ gera_certificados () {
 
 	while read line ; do
 	
-		#nome=`cut -f 1 -d : csv-template/alunos.csv`
 		nome=`echo "$line" | cut -f 1 -d :`
-		#sobrenome=`cut -f 2 -d : csv-template/alunos.csv`
 		sobrenome=`echo "$line" | cut -f 2 -d :`
 
 		echo -e "\t - Lendo dados do estudante: "
@@ -188,19 +186,40 @@ gera_certificados () {
 		echo -e "\t - Gerando arquivos necessários... "
 		cp pdf-template/template-uncompressed.pdf pdf-template/"$nome-uncompressed.pdf"
 	
-		echo -e "\t - Modificando dados do template... "
-		sed -i '' -e "s/Mary/$nome/g" pdf-template/"$nome-uncompressed.pdf" && \
-		sed -i '' -e "s/Johnson/$sobrenome/g" pdf-template/"$nome-uncompressed.pdf" && \
-		sed -i '' -e "s/DD/$dia/g" pdf-template/"$nome-uncompressed.pdf" && \
-		sed -i '' -e "s/MM/$mes/g" pdf-template/"$nome-uncompressed.pdf" && \
-		sed -i '' -e "s/YYYY/$ano/g" pdf-template/"$nome-uncompressed.pdf" && \
-		pdftk pdf-template/"$nome-uncompressed.pdf" output pdf-output/"Certificado-$nome-$sobrenome.pdf" compress && \
-		echo -e "\t\t - Certificado do estudante $nome $sobrenome gerado com sucesso!"
 
-		echo -e "\t - Removendo arquivos temporários... "
-		rm pdf-template/"$nome-uncompressed.pdf"
+		if $linux ; then
+			ano=`date | cut -f 6 -d " " `
+			dia=`date | cut -f 3 -d " " `
+			mes=`date | cut -f 2 -d " " `
+		
+			echo -e "\t - Modificando dados do template... "
+			sed -i "s/Mary/$nome/g" pdf-template/"$nome-uncompressed.pdf" && \
+			sed -i "s/Johnson/$sobrenome/g" pdf-template/"$nome-uncompressed.pdf" && \
+			sed -i "s/DD/$dia/g" pdf-template/"$nome-uncompressed.pdf" && \
+			sed -i "s/MM/$mes/g" pdf-template/"$nome-uncompressed.pdf" && \
+			sed -i "s/YYYY/$ano/g" pdf-template/"$nome-uncompressed.pdf" && \
+			pdftk pdf-template/"$nome-uncompressed.pdf" output pdf-output/"Certificado-$nome-$sobrenome.pdf" compress && \
+			echo -e "\t\t - Certificado do estudante $nome $sobrenome gerado com sucesso!"
 
-		echo -e "\t - Procedimento concluído! \n"
+			echo -e "\t - Removendo arquivos temporários... "
+			rm pdf-template/"$nome-uncompressed.pdf"
+
+			echo -e "\t - Procedimento concluído! \n"
+		else
+			echo -e "\t - Modificando dados do template... "
+			sed -i '' -e "s/Mary/$nome/g" pdf-template/"$nome-uncompressed.pdf" && \
+			sed -i '' -e "s/Johnson/$sobrenome/g" pdf-template/"$nome-uncompressed.pdf" && \
+			sed -i '' -e "s/DD/$dia/g" pdf-template/"$nome-uncompressed.pdf" && \
+			sed -i '' -e "s/MM/$mes/g" pdf-template/"$nome-uncompressed.pdf" && \
+			sed -i '' -e "s/YYYY/$ano/g" pdf-template/"$nome-uncompressed.pdf" && \
+			pdftk pdf-template/"$nome-uncompressed.pdf" output pdf-output/"Certificado-$nome-$sobrenome.pdf" compress && \
+			echo -e "\t\t - Certificado do estudante $nome $sobrenome gerado com sucesso!"
+
+			echo -e "\t - Removendo arquivos temporários... "
+			rm pdf-template/"$nome-uncompressed.pdf"
+
+			echo -e "\t - Procedimento concluído! \n"
+		fi
 
 	done < csv-template/alunos.csv	
 
@@ -223,18 +242,25 @@ instala_dependencias () {
 		echo -e "\t - Instalando pdftk em ambiente Linux... \n"
 		if $debianlike ; then
 			if $doas ; then
-				doas apt-get install pdftk
+				doas apt-get install pdftk || doas snap install pdftk
 				echo -e "\n"
 			else
-				sudo apt-get install pdftk
+				sudo apt-get install pdftk || sudo snap install pdftk
 				echo -e "\n"
 			fi
 		elif $redhatlike ; then
 			if $doas ; then
-				doas yum install pdftk
+				doas yum install pdftk 
 				echo -e "\n"
 			else
-				sudo yum install pdftk
+				sudo yum install pdftk || sudo dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm && \
+					                  sudo dnf upgrade && \
+							  sudo yum update && \
+							  sudo yum install snapd && \
+							  sudo systemctl enable --now snapd.socket && \
+							  test -d /snap || sudo ln -s /var/lib/snapd/snap /snap && \
+							  sudo snap install pdftk
+
 				echo -e "\n"
 			fi
 		else
